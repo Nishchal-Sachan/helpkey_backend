@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import pool from "@/utils/db";
-import { verifyAdmin } from "@/utils/auth";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,10 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+// Handle CORS preflight requests
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
+// Fetch a listing by ID
 export async function GET(req, { params }) {
   try {
     const { id } = params || {};
@@ -32,13 +33,9 @@ export async function GET(req, { params }) {
   }
 }
 
+// Update a listing (without authentication)
 export async function PUT(req, { params }) {
   try {
-    const isAdmin = await verifyAdmin(req);
-    if (!isAdmin) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403, headers: corsHeaders });
-    }
-
     const { id } = params || {};
     if (!id) {
       return NextResponse.json({ success: false, error: "ID is required" }, { status: 400, headers: corsHeaders });
@@ -66,8 +63,8 @@ export async function PUT(req, { params }) {
            discount = COALESCE(?, discount)
        WHERE id = ?`,
       [
-        title, description, price, location, image_url, 
-        amenities ? JSON.stringify(amenities) : null, 
+        title, description, price, location, image_url,
+        amenities ? JSON.stringify(amenities) : null,
         property_type, beds, bathrooms, guests, place_category, discount, id
       ]
     );
@@ -83,13 +80,9 @@ export async function PUT(req, { params }) {
   }
 }
 
+// Delete a listing (without authentication)
 export async function DELETE(req, { params }) {
   try {
-    const isAdmin = await verifyAdmin(req);
-    if (!isAdmin) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403, headers: corsHeaders });
-    }
-
     const { id } = params || {};
     if (!id) {
       return NextResponse.json({ success: false, error: "ID is required" }, { status: 400, headers: corsHeaders });
