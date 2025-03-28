@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key"; // Change this
-const ALLOWED_ORIGINS = ["http://localhost:3001"]; // Add allowed frontend origins
+const ALLOWED_ORIGINS = process.env.URL; // Add allowed frontend origins
 
 export async function OPTIONS() {
   // Handle CORS preflight requests

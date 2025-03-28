@@ -1,7 +1,7 @@
 import Cors from "cors";
 
 const cors = Cors({
-  origin: "http://localhost:3001", // Allow frontend requests from this origin
+  origin: process.env.URL, // Allow frontend requests from this origin
   methods: ["GET", "OPTIONS"],
 });
 
