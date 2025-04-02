@@ -43,9 +43,6 @@ export async function OPTIONS() {
 //   }
 // }
 
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
 
 // Fetch all listings or search by location
 export async function GET(req) {
