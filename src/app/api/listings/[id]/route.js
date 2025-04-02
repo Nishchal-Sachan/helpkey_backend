@@ -13,6 +13,27 @@ export async function OPTIONS() {
 }
 
 // Fetch a listing by ID
+// export async function GET(req, { params }) {
+//   try {
+//     const { id } = params || {};
+//     if (!id) {
+//       return NextResponse.json({ success: false, error: "ID is required" }, { status: 400, headers: corsHeaders });
+//     }
+
+//     const [rows] = await pool.query("SELECT * FROM listings WHERE id = ?", [id]);
+
+//     if (rows.length === 0) {
+//       return NextResponse.json({ success: false, error: "Listing not found" }, { status: 404, headers: corsHeaders });
+//     }
+
+//     return NextResponse.json({ success: true, data: rows[0] }, { headers: corsHeaders });
+//   } catch (error) {
+//     console.error("GET /listings/[id] Error:", error);
+//     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500, headers: corsHeaders });
+//   }
+// }
+
+
 export async function GET(req, { params }) {
   try {
     const { id } = params || {};
@@ -26,12 +47,22 @@ export async function GET(req, { params }) {
       return NextResponse.json({ success: false, error: "Listing not found" }, { status: 404, headers: corsHeaders });
     }
 
-    return NextResponse.json({ success: true, data: rows[0] }, { headers: corsHeaders });
+    // Parse the amenities field to ensure it's an array
+    const listing = rows[0];
+    try {
+      listing.amenities = JSON.parse(listing.amenities); // Ensure amenities is an array
+    } catch (err) {
+      // If JSON parsing fails, default to an empty array
+      listing.amenities = [];
+    }
+
+    return NextResponse.json({ success: true, data: listing }, { headers: corsHeaders });
   } catch (error) {
     console.error("GET /listings/[id] Error:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500, headers: corsHeaders });
   }
 }
+
 
 // Update a listing (without authentication)
 export async function PUT(req, { params }) {

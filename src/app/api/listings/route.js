@@ -22,6 +22,27 @@ export async function GET() {
     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
   }
 }
+// search listing by locxation
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const location = searchParams.get("location");
+
+  if (!location) {
+    return NextResponse.json({ success: false, error: "Location is required" }, { status: 400, headers: corsHeaders });
+  }
+
+  try {
+    const query = "SELECT * FROM listings WHERE location LIKE ?";
+    const [rows] = await pool.query(query, [`%${location}%`]);
+
+    return NextResponse.json({ success: true, vendors: rows }, { headers: corsHeaders });
+
+  } catch (error) {
+    console.error("Error fetching listings:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+  }
+}
+
 
 // Add a new listing (without authentication)
 export async function POST(req) {
