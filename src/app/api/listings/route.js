@@ -13,33 +13,67 @@ export async function OPTIONS() {
 }
 
 // Fetch all listings
-export async function GET() {
-  try {
-    const [rows] = await pool.query("SELECT * FROM listings");
-    return NextResponse.json({ success: true, data: rows }, { headers: corsHeaders });
-  } catch (error) {
-    console.error("Error fetching listings:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
-  }
+// export async function GET() {
+//   try {
+//     const [rows] = await pool.query("SELECT * FROM listings");
+//     return NextResponse.json({ success: true, data: rows }, { headers: corsHeaders });
+//   } catch (error) {
+//     console.error("Error fetching listings:", error);
+//     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+//   }
+// }
+// // search listing by locxation
+// export async function GET(req) {
+//   const { searchParams } = new URL(req.url);
+//   const location = searchParams.get("location");
+
+//   if (!location) {
+//     return NextResponse.json({ success: false, error: "Location is required" }, { status: 400, headers: corsHeaders });
+//   }
+
+//   try {
+//     const query = "SELECT * FROM listings WHERE location LIKE ?";
+//     const [rows] = await pool.query(query, [`%${location}%`]);
+
+//     return NextResponse.json({ success: true, vendors: rows }, { headers: corsHeaders });
+
+//   } catch (error) {
+//     console.error("Error fetching listings:", error);
+//     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+//   }
+// }
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
 }
-// search listing by locxation
+
+// Fetch all listings or search by location
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const location = searchParams.get("location");
-
-  if (!location) {
-    return NextResponse.json({ success: false, error: "Location is required" }, { status: 400, headers: corsHeaders });
-  }
-
   try {
-    const query = "SELECT * FROM listings WHERE location LIKE ?";
-    const [rows] = await pool.query(query, [`%${location}%`]);
+    const { searchParams } = new URL(req.url);
+    const location = searchParams.get("location");
 
-    return NextResponse.json({ success: true, vendors: rows }, { headers: corsHeaders });
+    let query = "SELECT * FROM listings";
+    let values = [];
+
+    if (location) {
+      query += " WHERE location LIKE ?";
+      values.push(`%${location}%`);
+    }
+
+    const [rows] = await pool.query(query, values);
+    
+    return NextResponse.json(
+      { success: true, data: rows },
+      { headers: corsHeaders }
+    );
 
   } catch (error) {
     console.error("Error fetching listings:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
 
