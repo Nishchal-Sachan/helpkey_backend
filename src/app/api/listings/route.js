@@ -84,7 +84,7 @@ export async function POST(req) {
     const {
       title, description, price, location, image_url,
       amenities, property_type, beds, bathrooms, guests,
-      place_category, discount,
+      place_category, discount, hotelDetails
     } = body;
 
     // Validate required fields
@@ -93,7 +93,8 @@ export async function POST(req) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
-    const [result] = await pool.query(
+    // Insert into listings table
+    const [listingResult] = await pool.query(
       "INSERT INTO listings (title, description, price, location, image_url, amenities, property_type, beds, bathrooms, guests, place_category, discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         title, description, parseFloat(price), location, image_url,
@@ -103,7 +104,25 @@ export async function POST(req) {
       ]
     );
 
-    return NextResponse.json({ success: true, message: "Listing added", id: result.insertId }, { headers: corsHeaders });
+    const listingId = listingResult.insertId; // Get the inserted listing ID
+
+    // If property type is "Hotel", insert into hotel_details table
+    if (property_type === "Hotel" && hotelDetails) {
+      const { numRooms, roomTypes } = hotelDetails;
+
+      if (!numRooms || !roomTypes || roomTypes.length === 0) {
+        console.error("Missing hotel details", { numRooms, roomTypes });
+        return NextResponse.json({ success: false, error: "Hotel details are required" }, { status: 400, headers: corsHeaders });
+      }
+
+      await pool.query(
+        "INSERT INTO hotel_details (listing_id, num_rooms, room_types) VALUES (?, ?, ?)",
+        [listingId, parseInt(numRooms), JSON.stringify(roomTypes)]
+      );
+    }
+
+    return NextResponse.json({ success: true, message: "Listing added", id: listingId }, { headers: corsHeaders });
+
   } catch (error) {
     console.error("Error processing request:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });

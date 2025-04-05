@@ -1,73 +1,56 @@
-import { NextResponse } from "next/server";
-import pool from "@/utils/db";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key"; // Change this
-const ALLOWED_ORIGINS = process.env.URL; // Add allowed frontend origins
-
-export async function OPTIONS() {
-  // Handle CORS preflight requests
-  const headers = new Headers();
-  headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGINS[0]);
-  headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  return new NextResponse(null, { status: 204, headers });
-}
+import pool from "@/utils/db"; 
 
 export async function POST(req) {
   try {
-    // Parse JSON body safely
     const body = await req.json();
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json(
-        { success: false, error: "Email and password are required" },
-        { status: 400 }
-      );
+      return new Response(JSON.stringify({ success: false, error: "Missing required fields" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Fetch user from database
-    const [users] = await pool.query("SELECT * FROM admin_users WHERE email = ?", [email]);
+    // Check if admin exists
+    const [adminUser] = await pool.query("SELECT * FROM admin_users WHERE email = ?", [email]);
 
-    if (!users || users.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Invalid email or password" },
-        { status: 401 }
-      );
+    if (adminUser.length === 0) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid credentials" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    const admin = users[0];
+    const admin = adminUser[0];
 
-    // Check password
-    const passwordMatch = await bcrypt.compare(password, admin.password_hash);
-    if (!passwordMatch) {
-      return NextResponse.json(
-        { success: false, error: "Invalid email or password" },
-        { status: 401 }
-      );
+    // Verify password
+    const isMatch = await bcrypt.compare(password, admin.password_hash);
+    if (!isMatch) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid credentials" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Generate JWT Token
-    const token = jwt.sign({ id: admin.id, email: admin.email }, SECRET_KEY, { expiresIn: "7d" });
-
-    // Set CORS headers
-    const headers = new Headers();
-    headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGINS[0]);
-    headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-    return new NextResponse(
-      JSON.stringify({ success: true, message: "Login successful", token }),
-      { status: 200, headers }
+    const token = jwt.sign(
+      { id: admin.id, email: admin.email, role: admin.role },
+      process.env.JWT_SECRET || "your_secret_key",
+      { expiresIn: "1d" }
     );
+
+    return new Response(JSON.stringify({ success: true, message: "Login successful", token }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error(error);
+    return new Response(JSON.stringify({ success: false, error: "Internal Server Error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
