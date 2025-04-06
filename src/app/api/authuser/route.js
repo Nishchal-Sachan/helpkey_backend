@@ -1,7 +1,22 @@
 import jwt from "jsonwebtoken";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Credentials": "true",
+};
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 export async function GET(req) {
-  const headers = { "Content-Type": "application/json" };
+  const headers = new Headers(corsHeaders);
+  headers.set("Content-Type", "application/json");
 
   try {
     const cookie = req.headers.get("cookie") || "";
