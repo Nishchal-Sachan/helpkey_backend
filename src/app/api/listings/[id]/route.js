@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import pool from "@/utils/db";
-import jwt from "jsonwebtoken";
+import { verifyAdmin } from "@/utils/auth";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
   "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Credentials": "true",
 };
 
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-// GET remains the same — no token check needed
 export async function GET(req, { params }) {
   try {
     const { id } = params || {};
@@ -21,7 +21,7 @@ export async function GET(req, { params }) {
     }
 
     const [rows] = await pool.query("SELECT * FROM listings WHERE id = ?", [id]);
-    if (rows.length === 0) {
+    if (!rows.length) {
       return NextResponse.json({ success: false, error: "Listing not found" }, { status: 404, headers: corsHeaders });
     }
 
@@ -39,7 +39,6 @@ export async function GET(req, { params }) {
   }
 }
 
-// 🔐 Secure PUT
 export async function PUT(req, { params }) {
   try {
     const { id } = params || {};
@@ -47,18 +46,13 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ success: false, error: "ID is required" }, { status: 400, headers: corsHeaders });
     }
 
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+    const { success, adminId, error } = await verifyAdmin(req);
+    if (!success) {
+      return NextResponse.json({ success: false, error }, { status: 401, headers: corsHeaders });
     }
 
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_secret_key");
-    const adminId = decoded.id;
-
-    // Check if the listing belongs to this admin
     const [check] = await pool.query("SELECT * FROM listings WHERE id = ? AND admin_id = ?", [id, adminId]);
-    if (check.length === 0) {
+    if (!check.length) {
       return NextResponse.json({ success: false, error: "Not authorized to update this listing" }, { status: 403, headers: corsHeaders });
     }
 
@@ -68,7 +62,7 @@ export async function PUT(req, { params }) {
       place_category, discount,
     } = await req.json();
 
-    const [result] = await pool.query(
+    await pool.query(
       `UPDATE listings 
        SET title = COALESCE(?, title), 
            description = COALESCE(?, description), 
@@ -97,7 +91,6 @@ export async function PUT(req, { params }) {
   }
 }
 
-// 🔐 Secure DELETE
 export async function DELETE(req, { params }) {
   try {
     const { id } = params || {};
@@ -105,22 +98,17 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ success: false, error: "ID is required" }, { status: 400, headers: corsHeaders });
     }
 
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+    const { success, adminId, error } = await verifyAdmin(req);
+    if (!success) {
+      return NextResponse.json({ success: false, error }, { status: 401, headers: corsHeaders });
     }
 
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_secret_key");
-    const adminId = decoded.id;
-
-    // Ensure listing belongs to the logged-in admin
     const [check] = await pool.query("SELECT * FROM listings WHERE id = ? AND admin_id = ?", [id, adminId]);
-    if (check.length === 0) {
+    if (!check.length) {
       return NextResponse.json({ success: false, error: "Not authorized to delete this listing" }, { status: 403, headers: corsHeaders });
     }
 
-    const [result] = await pool.query("DELETE FROM listings WHERE id = ?", [id]);
+    await pool.query("DELETE FROM listings WHERE id = ?", [id]);
     return NextResponse.json({ success: true, message: "Listing deleted successfully" }, { headers: corsHeaders });
   } catch (error) {
     console.error("DELETE /listings/[id] Error:", error);

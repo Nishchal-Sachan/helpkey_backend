@@ -1,66 +1,90 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import pool from "@/utils/db";
 
 export async function POST(req) {
-  // Set CORS headers manually
+  const origin = req.headers.get("Origin");
   const headers = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app", // your frontend
+    "Access-Control-Allow-Origin": origin || "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Credentials": "true",
   };
 
   try {
     const body = await req.json();
     const { first_name, last_name, email, phone_number, password, role } = body;
 
-    if (!first_name || !last_name || !email || !password) {
-      return new Response(JSON.stringify({ success: false, error: "Missing required fields" }), {
-        status: 400,
-        headers,
-      });
+    if (!first_name || !last_name || !email || !password || !phone_number) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing required fields" }),
+        { status: 400, headers }
+      );
     }
 
-    // Check if email already exists
-    const [existingUser] = await pool.query("SELECT id FROM admin_users WHERE email = ?", [email]);
-    if (existingUser.length > 0) {
-      return new Response(JSON.stringify({ success: false, error: "Email already in use" }), {
-        status: 400,
-        headers,
-      });
+    const [existingUsers] = await pool.query(
+      "SELECT id, email, phone_number FROM admin_users WHERE email = ? OR phone_number = ?",
+      [email, phone_number]
+    );
+
+    if (existingUsers.length > 0) {
+      const existingUser = existingUsers[0];
+      const duplicateField =
+        existingUser.email === email ? "Email" : "Phone number";
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `${duplicateField} already in use`,
+        }),
+        { status: 400, headers }
+      );
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Insert new admin user
-    await pool.query(
+    const [result] = await pool.query(
       "INSERT INTO admin_users (first_name, last_name, email, phone_number, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)",
       [first_name, last_name, email, phone_number, hashedPassword, role || "admin"]
     );
 
-    return new Response(JSON.stringify({ success: true, message: "Admin registered successfully" }), {
-      status: 201,
-      headers,
-    });
+    const newUserId = result.insertId;
+
+    const token = jwt.sign(
+      { id: newUserId, email, role: role || "admin" },
+      process.env.JWT_SECRET || "your_secret_key",
+      { expiresIn: "1d" }
+    );
+
+    return new Response(
+      JSON.stringify({ success: true, message: "Signup successful" }),
+      {
+        status: 201,
+        headers: {
+          "Set-Cookie": `token=${token}; HttpOnly; Path=/; Secure; SameSite=None; Max-Age=86400`,
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": origin || "*",
+          "Access-Control-Allow-Credentials": "true",
+        },
+      }
+    );
   } catch (error) {
-    console.error("Signup Error:", error);  // Log full error
-    return new Response(JSON.stringify({ success: false, error: "Internal Server Error" }), {
-      status: 500,
-      headers,
-    });
+    console.error("Signup Error:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: "Internal Server Error" }),
+      { status: 500, headers }
+    );
   }
 }
 
-// Handle OPTIONS preflight request (important for CORS)
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
+export async function OPTIONS(req) {
+  const origin = req.headers.get("Origin");
+  const headers = {
+    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Credentials": "true",
+  };
+  return new Response(null, { status: 204, headers });
 }
