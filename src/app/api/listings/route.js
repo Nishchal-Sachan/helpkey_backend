@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
 import pool from "@/utils/db";
 import { verifyAdmin } from "@/utils/auth";
+import { getCORSHeaders } from "@/utils/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-};
-
-export async function OPTIONS() {
+// Preflight handler
+export async function OPTIONS(req) {
+  const corsHeaders = getCORSHeaders(req);
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-// 🔍 Public GET route to fetch listings based on location (no auth)
+// Public GET route to fetch listings based on location (no auth)
 export async function GET(req) {
+  const corsHeaders = getCORSHeaders(req);
+
   try {
     const { searchParams } = new URL(req.url);
     const location = searchParams.get("location");
@@ -37,11 +35,16 @@ export async function GET(req) {
     return NextResponse.json({ success: true, data: listings }, { headers: corsHeaders });
   } catch (error) {
     console.error("GET /listings Error:", error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500, headers: corsHeaders });
+    return NextResponse.json(
+      { success: false, error: "Internal Server Error" },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
 
 export async function POST(req) {
+  const corsHeaders = getCORSHeaders(req);
+
   try {
     const { success, adminId, error } = await verifyAdmin(req);
     if (!success) {
