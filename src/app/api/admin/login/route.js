@@ -2,7 +2,20 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "@/utils/db";
 
-// POST: Handle login
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Credentials": "true",
+};
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -11,6 +24,7 @@ export async function POST(req) {
     if (!email || !password) {
       return new Response(JSON.stringify({ success: false, error: "Missing required fields" }), {
         status: 400,
+        headers: corsHeaders,
       });
     }
 
@@ -18,6 +32,7 @@ export async function POST(req) {
     if (adminUser.length === 0) {
       return new Response(JSON.stringify({ success: false, error: "Invalid credentials" }), {
         status: 401,
+        headers: corsHeaders,
       });
     }
 
@@ -26,6 +41,7 @@ export async function POST(req) {
     if (!isMatch) {
       return new Response(JSON.stringify({ success: false, error: "Invalid credentials" }), {
         status: 401,
+        headers: corsHeaders,
       });
     }
 
@@ -38,6 +54,7 @@ export async function POST(req) {
     return new Response(JSON.stringify({ success: true, message: "Login successful" }), {
       status: 200,
       headers: {
+        ...corsHeaders,
         "Set-Cookie": `token=${token}; HttpOnly; Path=/; Secure; SameSite=None; Max-Age=86400`,
         "Content-Type": "application/json",
       },
@@ -46,18 +63,7 @@ export async function POST(req) {
     console.error("Login Error:", error);
     return new Response(JSON.stringify({ success: false, error: "Internal Server Error" }), {
       status: 500,
+      headers: corsHeaders,
     });
   }
-}
-
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Credentials": "true",
-    },
-  });
 }

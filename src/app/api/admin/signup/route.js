@@ -6,7 +6,7 @@ export async function POST(req) {
   const origin = req.headers.get("Origin");
   const headers = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app/",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Credentials": "true",
