@@ -45,7 +45,7 @@ export async function POST(req) {
       headers,
     });
   } catch (error) {
-    console.error("Signup Error:", error);
+    console.error("Signup Error:", error);  // Log full error
     return new Response(JSON.stringify({ success: false, error: "Internal Server Error" }), {
       status: 500,
       headers,
