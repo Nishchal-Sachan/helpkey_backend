@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import pool from "@/utils/db"; 
+import pool from "@/utils/db";
+import jwt from "jsonwebtoken";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,80 +8,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Handle CORS preflight requests
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
-
-// Fetch all listings
-// export async function GET() {
-//   try {
-//     const [rows] = await pool.query("SELECT * FROM listings");
-//     return NextResponse.json({ success: true, data: rows }, { headers: corsHeaders });
-//   } catch (error) {
-//     console.error("Error fetching listings:", error);
-//     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
-//   }
-// }
-// // search listing by locxation
-// export async function GET(req) {
-//   const { searchParams } = new URL(req.url);
-//   const location = searchParams.get("location");
-
-//   if (!location) {
-//     return NextResponse.json({ success: false, error: "Location is required" }, { status: 400, headers: corsHeaders });
-//   }
-
-//   try {
-//     const query = "SELECT * FROM listings WHERE location LIKE ?";
-//     const [rows] = await pool.query(query, [`%${location}%`]);
-
-//     return NextResponse.json({ success: true, vendors: rows }, { headers: corsHeaders });
-
-//   } catch (error) {
-//     console.error("Error fetching listings:", error);
-//     return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
-//   }
-// }
-
-
-// Fetch all listings or search by location
-export async function GET(req) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const location = searchParams.get("location");
-
-    let query = "SELECT * FROM listings";
-    let values = [];
-
-    if (location) {
-      query += " WHERE location LIKE ?";
-      values.push(`%${location}%`);
-    }
-
-    const [rows] = await pool.query(query, values);
-    
-    return NextResponse.json(
-      { success: true, data: rows },
-      { headers: corsHeaders }
-    );
-
-  } catch (error) {
-    console.error("Error fetching listings:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500, headers: corsHeaders }
-    );
-  }
-}
-
-
-// Add a new listing (without authentication)
+// Add a new listing (with admin_id)
 export async function POST(req) {
   try {
-    const body = await req.json();
-    console.log("Received body:", body);
+    // Get and verify token
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+    }
 
+    const token = authHeader.split(" ")[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || "your_secret_key");
+    } catch (err) {
+      return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401, headers: corsHeaders });
+    }
+
+    const adminId = decoded.id;
+
+    const body = await req.json();
     const {
       title, description, price, location, image_url,
       amenities, property_type, beds, bathrooms, guests,
@@ -89,29 +36,29 @@ export async function POST(req) {
 
     // Validate required fields
     if (!title || !price || !location || !property_type || !place_category) {
-      console.error("Missing required fields", { title, price, location, property_type, place_category });
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
-    // Insert into listings table
+    // Insert into listings table with admin_id
     const [listingResult] = await pool.query(
-      "INSERT INTO listings (title, description, price, location, image_url, amenities, property_type, beds, bathrooms, guests, place_category, discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      `INSERT INTO listings 
+      (title, description, price, location, image_url, amenities, property_type, beds, bathrooms, guests, place_category, discount, admin_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         title, description, parseFloat(price), location, image_url,
         JSON.stringify(amenities), property_type, parseInt(beds) || 1,
         parseInt(bathrooms) || 1, parseInt(guests) || 1, place_category,
-        parseFloat(discount) || 0.0
+        parseFloat(discount) || 0.0, adminId
       ]
     );
 
-    const listingId = listingResult.insertId; // Get the inserted listing ID
+    const listingId = listingResult.insertId;
 
-    // If property type is "Hotel", insert into hotel_details table
+    // Insert hotel details if applicable
     if (property_type === "Hotel" && hotelDetails) {
       const { numRooms, roomTypes } = hotelDetails;
 
       if (!numRooms || !roomTypes || roomTypes.length === 0) {
-        console.error("Missing hotel details", { numRooms, roomTypes });
         return NextResponse.json({ success: false, error: "Hotel details are required" }, { status: 400, headers: corsHeaders });
       }
 

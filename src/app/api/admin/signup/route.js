@@ -1,7 +1,15 @@
 import bcrypt from "bcryptjs";
-import pool from "@/utils/db";  
+import pool from "@/utils/db";
 
 export async function POST(req) {
+  // Set CORS headers manually
+  const headers = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "http://localhost:3001", // your frontend
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+
   try {
     const body = await req.json();
     const { first_name, last_name, email, phone_number, password, role } = body;
@@ -9,7 +17,7 @@ export async function POST(req) {
     if (!first_name || !last_name || !email || !password) {
       return new Response(JSON.stringify({ success: false, error: "Missing required fields" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -18,7 +26,7 @@ export async function POST(req) {
     if (existingUser.length > 0) {
       return new Response(JSON.stringify({ success: false, error: "Email already in use" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers,
       });
     }
 
@@ -34,13 +42,25 @@ export async function POST(req) {
 
     return new Response(JSON.stringify({ success: true, message: "Admin registered successfully" }), {
       status: 201,
-      headers: { "Content-Type": "application/json" },
+      headers,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Signup Error:", error);
     return new Response(JSON.stringify({ success: false, error: "Internal Server Error" }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers,
     });
   }
+}
+
+// Handle OPTIONS preflight request (important for CORS)
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
 }
