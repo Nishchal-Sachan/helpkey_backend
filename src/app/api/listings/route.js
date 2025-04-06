@@ -3,7 +3,7 @@ import pool from "@/utils/db";
 import jwt from "jsonwebtoken";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app/",
+  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
