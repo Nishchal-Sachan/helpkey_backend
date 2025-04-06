@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server";
 import pool from "@/utils/db";
 import { verifyAdmin } from "@/utils/auth";
+import { getCORSHeaders } from "@/utils/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
-  "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-};
-
-export async function OPTIONS() {
+export async function OPTIONS(req) {
+  const corsHeaders = getCORSHeaders(req);
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
 export async function GET(req, { params }) {
+  const corsHeaders = getCORSHeaders(req);
   try {
     const { id } = params || {};
     if (!id) {
@@ -40,6 +36,7 @@ export async function GET(req, { params }) {
 }
 
 export async function PUT(req, { params }) {
+  const corsHeaders = getCORSHeaders(req);
   try {
     const { id } = params || {};
     if (!id) {
@@ -92,6 +89,7 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
+  const corsHeaders = getCORSHeaders(req);
   try {
     const { id } = params || {};
     if (!id) {
