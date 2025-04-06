@@ -1,21 +1,15 @@
 import jwt from "jsonwebtoken";
+import { getCORSHeaders } from "@/utils/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-};
-
-export async function OPTIONS() {
+export async function OPTIONS(req) {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: getCORSHeaders(req),
   });
 }
 
 export async function GET(req) {
-  const headers = new Headers(corsHeaders);
+  const headers = new Headers(getCORSHeaders(req));
   headers.set("Content-Type", "application/json");
 
   try {
@@ -27,7 +21,11 @@ export async function GET(req) {
 
     if (!token) {
       return new Response(
-        JSON.stringify({ success: false, isAuthenticated: false, error: "No token found" }),
+        JSON.stringify({
+          success: false,
+          isAuthenticated: false,
+          error: "No token found",
+        }),
         { status: 401, headers }
       );
     }
@@ -35,12 +33,20 @@ export async function GET(req) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_secret_key");
 
     return new Response(
-      JSON.stringify({ success: true, isAuthenticated: true, user: decoded }),
+      JSON.stringify({
+        success: true,
+        isAuthenticated: true,
+        user: decoded,
+      }),
       { status: 200, headers }
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ success: false, isAuthenticated: false, error: "Invalid or expired token" }),
+      JSON.stringify({
+        success: false,
+        isAuthenticated: false,
+        error: "Invalid or expired token",
+      }),
       { status: 401, headers }
     );
   }
