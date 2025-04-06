@@ -5,7 +5,7 @@ import pool from "@/utils/db";
 // CORS headers
 const headers = {
   "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app/",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };

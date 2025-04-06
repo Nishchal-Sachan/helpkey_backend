@@ -5,7 +5,7 @@ export async function POST(req) {
   // Set CORS headers manually
   const headers = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*", // your frontend
+    "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app/", // your frontend
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };

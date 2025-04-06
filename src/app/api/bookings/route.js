@@ -3,7 +3,7 @@ import pool from "@/utils/db";
 import { verifyAdmin } from "@/utils/auth";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://helpkey-frontend.vercel.app/",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",  // Add POST here
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
